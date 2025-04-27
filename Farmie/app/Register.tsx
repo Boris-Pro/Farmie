@@ -3,8 +3,6 @@ import { View, TextInput, Button, Text, StyleSheet, Alert, Image, TouchableOpaci
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 
-// Define types for the props
-
 
 
 const RegisterScreen = () => {

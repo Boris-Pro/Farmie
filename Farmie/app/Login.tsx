@@ -22,9 +22,9 @@ const LoginScreen = () => {
       });
 
       if (response.status === 200) {
-        router.push('/'); // Navigate to Home
+        console.log('Login successful');
+        router.push('/Dashboard'); // Navigate to Dashboard
       }
-      
     } catch (error: any) {
       setErrorMessage(error.response?.data?.message || 'Invalid credentials');
     }
