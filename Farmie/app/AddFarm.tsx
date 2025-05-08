@@ -1,9 +1,10 @@
-//AddFarm.tsx
+// AddFarm.tsx
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AddFarm = () => {
   const [name, setName] = useState('');
@@ -13,32 +14,46 @@ const AddFarm = () => {
   const router = useRouter();
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true });
+    const result = await ImagePicker.launchImageLibraryAsync({ 
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, 
+      allowsEditing: true 
+    });
     if (!result.canceled) {
       setImage(result.assets[0]);
     }
   };
 
   const handleSubmit = async () => {
-    if (!name || !location || !crop || !image) return;
-
-    const formData = new FormData();
-    formData.append('name', name);
-    formData.append('location', location);
-    formData.append('crop', crop);
-    formData.append('image', {
-      uri: image.uri,
-      type: 'image/jpeg',
-      name: 'farm.jpg',
-    } as any);
+    if (!name || !location || !crop || !image) {
+      Alert.alert('Missing fields', 'Please fill out all fields and select an image.');
+      return;
+    }
 
     try {
-      await axios.post('http://127.0.0.1:5000/add_farm', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      const token = await AsyncStorage.getItem('jwt_token');
+      if (!token) {
+        Alert.alert('Session expired', 'Please login again.');
+        router.push('/Login');
+        return;
+      }
+
+      await axios.post('http://127.0.0.1:5000/add_farm', {
+        name,
+        location,
+        crop,
+        image_url: image.uri,
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
+
+      Alert.alert('Success', 'Farm added successfully!');
       router.back();
     } catch (err) {
       console.error('Upload error', err);
+      Alert.alert('Error', 'Failed to upload farm. Please try again.');
     }
   };
 
@@ -48,12 +63,16 @@ const AddFarm = () => {
         {image ? (
           <Image source={{ uri: image.uri }} style={styles.image} />
         ) : (
-          <View style={styles.imagePlaceholder}><Text>Pick an Image</Text></View>
+          <View style={styles.imagePlaceholder}>
+            <Text>Pick an Image</Text>
+          </View>
         )}
       </TouchableOpacity>
+
       <TextInput style={styles.input} placeholder="Farm Name" value={name} onChangeText={setName} />
       <TextInput style={styles.input} placeholder="Location" value={location} onChangeText={setLocation} />
       <TextInput style={styles.input} placeholder="Potential Crop" value={crop} onChangeText={setCrop} />
+
       <TouchableOpacity style={styles.submit} onPress={handleSubmit}>
         <Text style={styles.submitText}>Add Farm</Text>
       </TouchableOpacity>

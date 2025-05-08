@@ -8,7 +8,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <Image
-        source={require('/Users/javonlaing/Desktop/Farmie/Farmie/assets/images/farmie.png')}
+        source={require('../assets/images/farmie.png')}
         style={styles.image}
         resizeMode="contain"
       />

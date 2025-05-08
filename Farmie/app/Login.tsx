@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, TextInput, Button, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 
 const LoginScreen = () => {
   const [username, setUsername] = useState<string>('');
@@ -22,6 +23,9 @@ const LoginScreen = () => {
       });
 
       if (response.status === 200) {
+        const { access_token } = response.data; // Retrieve the token from the response
+        await AsyncStorage.setItem('jwt_token', access_token); // Store the token securely
+
         console.log('Login successful');
         router.push('/Dashboard'); // Navigate to Dashboard
       }
@@ -34,7 +38,7 @@ const LoginScreen = () => {
     <View style={styles.container}>
       <View style={styles.centerContent}>
         <Image
-          source={require('/Users/javonlaing/Desktop/Farmie/Farmie/assets/images/farmie.png')}
+          source={require('../assets/images/farmie.png')}
           style={styles.image}
           resizeMode="contain"
         />

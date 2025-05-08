@@ -58,7 +58,7 @@ const RegisterScreen = () => {
     <View style={styles.container}>
       <View style={styles.centerContent}>
         <Image
-          source={require('/Users/javonlaing/Desktop/Farmie/Farmie/assets/images/farmie.png')}
+          source={require('../assets/images/farmie.png')}
           style={styles.image}
           resizeMode="contain"
         />

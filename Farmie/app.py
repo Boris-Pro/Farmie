@@ -1,18 +1,18 @@
-from flask import Flask, request, make_response, jsonify, session
+from flask import Flask, request, make_response, jsonify
 import mysql.connector
 import hashlib
 from flask_cors import CORS
-from flask_session import Session
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 
 app = Flask(__name__)
 
 # Set up the secret key to secure sessions
 app.config['SECRET_KEY'] = 'farmie_secret_key'
-app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_COOKIE_NAME'] = 'session'
 
-# Initialize the session
-Session(app)
+# JWT Manager setup
+app.config['JWT_SECRET_KEY'] = 'your_jwt_secret_key'  # Change this to a more secure key
+jwt = JWTManager(app)
 
 # Enabling CORS with specific origins
 CORS(app, origins="http://localhost:8081", supports_credentials=True)
@@ -53,9 +53,6 @@ def register():
     # Insert new user
     hashed_password = hash_password(password)
     cursor.execute('INSERT INTO registered_users (username, password) VALUES (%s, %s)', (username, hashed_password))
-
-    # Save the username in session
-    session['username'] = username
     conn.commit()
 
     cursor.close()
@@ -63,7 +60,7 @@ def register():
 
     return jsonify({'message': 'User registered successfully'}), 201
 
-# Login route
+# Login route - now generates a JWT token
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -88,27 +85,24 @@ def login():
     if stored_password != hashed_input_password:
         return make_response(jsonify({'message': 'Invalid username or password'}), 401)
 
-    # Set username in session after successful login
-    session['username'] = username
+    # Create a JWT token after successful login
+    access_token = create_access_token(identity=username)
 
     cursor.close()
     conn.close()
 
-    return jsonify({'message': 'Login successful'}), 200
+    return jsonify({'access_token': access_token}), 200
 
-# Logout route
+# Logout route (JWT doesn't need this, but added for consistency)
 @app.route('/logout', methods=['POST'])
 def logout():
-    session.clear()
     return jsonify({'message': 'Logout successful'}), 200
 
-# Add Farm route
+# Add Farm route - Protected with JWT
 @app.route('/add_farm', methods=['POST'])
+@jwt_required()
 def add_farm():
-    if 'username' not in session:
-        return jsonify({'error': 'User not logged in'}), 401
-
-    username = session['username']
+    username = get_jwt_identity()  # Get the username from the JWT token
     print(f"Logged in as: {username}")
 
     data = request.get_json()
@@ -139,13 +133,11 @@ def add_farm():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Get Farms by User route
+# Get Farms by User route - Protected with JWT
 @app.route('/get_farms_by_user', methods=['GET'])
+@jwt_required()
 def get_farms_by_user():
-    if 'username' not in session:
-        return jsonify({'error': 'User not logged in'}), 401
-
-    username = session['username']
+    username = get_jwt_identity()  # Get the username from the JWT token
     print(f"Logged in as: {username}")
 
     try:

@@ -1,48 +1,60 @@
-//Dashboard.tsx
+// Dashboard.tsx
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
-import Icon from 'react-native-vector-icons/Feather'; // <-- Feather icon set
+import Icon from 'react-native-vector-icons/Feather';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
+
+type Farm = {
+  id: number;
+  name: string;
+  crop: string;
+  image_url: string;
+};
 
 const Dashboard = () => {
   const router = useRouter();
   const [farms, setFarms] = useState<Farm[]>([]);
 
-  type Farm = {
-    id: number;
-    name: string;
-    crop: string;
-    image_url: string;
-   };
-
   const fetchFarms = async () => {
     try {
-      const res = await axios.get('http://127.0.0.1:5000/get_farms_by_user',{
-        withCredentials: true,
-      }); 
+      const token = await AsyncStorage.getItem('jwt_token');
+      if (!token) {
+        Alert.alert('Session expired', 'Please login again');
+        router.push('/Login');
+        return;
+      }
+
+      const res = await axios.get('http://127.0.0.1:5000/get_farms_by_user', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       setFarms(res.data.slice(0, 3));
     } catch (error) {
       console.error('Failed to fetch farms', error);
+      Alert.alert('Error', 'Failed to fetch farms. Please try again.');
     }
   };
 
-    // Logout function
-    const handleLogout = async () => {
-        try {
-          await axios.post('http://127.0.0.1:5000/logout'); // Assuming there's a logout endpoint on the server
-          router.push('/Login'); // Redirect to login screen after logout
-        } catch (error) {
-          console.error('Logout failed', error);
-        }
-      };
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('jwt_token'); // Clear token from storage
+      router.push('/Login'); // Redirect to Login
+    } catch (error) {
+      console.error('Logout failed', error);
+      Alert.alert('Error', 'Logout failed. Please try again.');
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
       fetchFarms();
     }, [])
-  )
+  );
 
   return (
     <View style={styles.container}>
@@ -57,11 +69,13 @@ const Dashboard = () => {
           </View>
         )}
       />
+      
       <TouchableOpacity style={styles.addButton} onPress={() => router.push('/AddFarm')}>
         <Icon name="plus-circle" size={32} color="#fff" />
       </TouchableOpacity>
-            {/* Logout Button */}
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+
+      {/* Logout Button */}
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Icon name="log-out" size={24} color="#fff" />
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
